@@ -13,6 +13,7 @@ builder.Services.AddDbContext<BdGrsContext>(options => options.UseSqlServer(buil
 builder.Services.AddControllers();
 builder.Services.AddScoped<GrsRepository>();
 builder.Services.AddScoped<EtapasRepository>();
+builder.Services.AddScoped<ClientesOcupacionesRepository>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

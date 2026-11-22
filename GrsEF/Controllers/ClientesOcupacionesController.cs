@@ -1,44 +1,74 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using _4VGymAPI.Models;
+using GrsEF.Dtos;
+using GrsEF.Models;
+using GrsEF.Repositories;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
 
 namespace GrsEF.Controllers
 {
-    public class ClientesOcupacionesController : Controller
+    [ApiController]
+    [Route("api/Ocupaciones")]
+    public class ClientesOcupacionesController : ControllerBase
     {
-        /* TODO: ClienteOcupaciónDto
-			- DNI
-			- Nombre
-			- Teléfono
-			- Número de personas
-			- Nombre del albergue
+        private readonly ClientesOcupacionesRepository _clientesOcupacionesRepository;
+        public ClientesOcupacionesController(ClientesOcupacionesRepository clientesOcupacionesRepository)
+        {
+            _clientesOcupacionesRepository = clientesOcupacionesRepository;
+        }
 
-			Flujo Controlador Recibe Datos JSON Devuelve RESPUESTA ->
+        [HttpPost]
+        [ProducesResponseType(typeof(Ocupacione), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(RespuestaError), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(RespuestaError), StatusCodes.Status409Conflict)]
 
-			Recibe los datos del json
+        public ActionResult<Ocupacione> CrearOcupacion([FromBody] ClienteOcupacionDTO coDTO)
+        {
+            string patronDni = @"^\d{8}[A-HJ-NP-TV-Z]$";
+            string patronTelefono = @"^[6-9]\d{8}$";
 
-			VALIDACIONES CONTROLADOR
-			Valida los datos del json
-				dni correcto -> Regex DNI y no NULL
-				nombre correcto -> No Null
-				teléfono correcto -> Regex Teléfono y no NULL
-				número personas correcto -> no puede ser menor que 1
-				nombre del albergue correcto -> no NULL
-			Guarda los datos del json en el DTO
-			Llama al método del Repo y le pasa el DTO
-			Devuelve lo que ha pasado en cada caso
+            if (String.IsNullOrWhiteSpace(coDTO.Dni) || !Regex.IsMatch(coDTO.Dni.ToUpper(), patronDni))
+            {
+                return BadRequest(new RespuestaError(400, "El dni no es válido"));
+            }
 
-			Flujo Repo Recibe ClienteOcupacionDTO Devuelve String ->
+            if (String.IsNullOrWhiteSpace(coDTO.Nombre))
+            {
+                return BadRequest(new RespuestaError(400, "El nombre no puede estar vacío"));
+            }
 
-			VALIDACIONES REPOSITORIO
-			albergue existe
-				no existe: devuelve String error.
-			albergue tiene plazas
-				no tiene plazas suficientes: devuelve String error.
+            if (String.IsNullOrWhiteSpace(coDTO.Telefono) || !Regex.IsMatch(coDTO.Telefono, patronTelefono))
+            {
+                return BadRequest(new RespuestaError(400, "El teléfono no es válido"));
+            }
 
-			si el dni no existe -> nuevo cliente
-			si el dni existe -> se hace uptate del cliente
+            if (coDTO.NumPersonas < 1)
+            {
+                return BadRequest(new RespuestaError(400, "Error en el número de personas: no puede ser inferior a 1."));
+            }
 
-			si cliente no existe -> se devuelve mensaje indicando que la reserva se ha llevado a cabo y se ha creado el cliente
-			si cliente existe -> se devuelve mensaje indicando que la reserva se ha llevado a cabo y el cliente ya existía*/
+            if (String.IsNullOrWhiteSpace(coDTO.NombreAlbergue))
+            {
+                return BadRequest(new RespuestaError(400, "El nombre del albergue no puede estar vacío."));
+            }
+
+            (bool exito, string mensaje, Ocupacione? o) = _clientesOcupacionesRepository.Add(coDTO);
+
+            if (!exito)
+            {
+                if (mensaje.StartsWith("El"))
+                {
+                    return Conflict(new RespuestaError(409, mensaje));
+                }
+                return BadRequest(new RespuestaError(400, mensaje));
+            }
+            return StatusCode(201, new
+            {
+                ocupacion = coDTO,
+                información = mensaje,
+                clienteDto = new { dni = coDTO.Dni, nombre = coDTO.Nombre, telefono = coDTO.Telefono }
+            });
+        }
     }
 }
