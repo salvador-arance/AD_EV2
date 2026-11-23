@@ -53,9 +53,9 @@ namespace GrsEF.Controllers
                 return BadRequest(new RespuestaError(400, "El nombre del albergue no puede estar vacío."));
             }
 
-            (bool exito, string mensaje, Ocupacione? o) = _clientesOcupacionesRepository.Add(coDTO);
+            (string mensaje, Ocupacione? o) = _clientesOcupacionesRepository.Add(coDTO);
 
-            if (!exito)
+            if (o == null)
             {
                 if (mensaje.StartsWith("El"))
                 {

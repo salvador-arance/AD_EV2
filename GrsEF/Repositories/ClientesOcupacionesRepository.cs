@@ -13,37 +13,34 @@ namespace GrsEF.Repositories
             _bdGrsContext = bdGrsContext;
         }
 
-        public (bool exito, string mensaje, Ocupacione? o) Add(ClienteOcupacionDTO clienteOcupacionDTO)
+        public (string mensaje, Ocupacione? o) Add(ClienteOcupacionDTO clienteOcupacionDTO)
         {
             string mensaje = "";
-            string nombreAlbergue = clienteOcupacionDTO.NombreAlbergue;
-            bool existe = _bdGrsContext.Albergues.Any(a => a.Nombre.ToLower() == nombreAlbergue.ToLower());
-            if (!existe)
+
+            Albergue? albergue = _bdGrsContext.Albergues.SingleOrDefault(a => a.Nombre.ToLower() == clienteOcupacionDTO.NombreAlbergue.ToLower());
+
+            if (albergue == null)
             {
-                return (false, $"El albergue {nombreAlbergue} no existe.", null);
+                return ($"El albergue {clienteOcupacionDTO.NombreAlbergue} no existe.", null);
             }
 
-            Albergue albergue = _bdGrsContext.Albergues.SingleOrDefault(a => a.Nombre.ToLower() == nombreAlbergue.ToLower())!;
-
-            string idAlbergue = albergue.Id!;
-
             int plazasOcupadas = _bdGrsContext.Ocupaciones
-                .Where(o => o.IdAlbergue == idAlbergue)
+                .Where(o => o.IdAlbergue == albergue.Id)
                 .Sum(o => o.CantPersonas);
 
             int plazasLibres = albergue.TotalPlazas - plazasOcupadas;
 
             if (clienteOcupacionDTO.NumPersonas > plazasLibres) 
             {
-                return (false, $"El albergue {nombreAlbergue} no tiene suficientes plazas.", null);
+                return ($"El albergue {clienteOcupacionDTO.NombreAlbergue} no tiene suficientes plazas.", null);
             }
 
             bool yaTieneReserva = _bdGrsContext.Ocupaciones
-                 .Any(o => o.Dni == clienteOcupacionDTO.Dni && o.IdAlbergue == idAlbergue);
+                 .Any(o => o.Dni == clienteOcupacionDTO.Dni && o.IdAlbergue == albergue.Id);
 
             if (yaTieneReserva)
             {
-                return (false, $"El cliente '{clienteOcupacionDTO.Dni}' ya tiene registrada una ocupación en ESTE albergue: '{albergue.Nombre}'.", null);
+                return ($"El cliente '{clienteOcupacionDTO.Dni}' ya tiene registrada una ocupación en ESTE albergue: '{albergue.Nombre}'.", null);
             }
 
             var cliente = _bdGrsContext.Clientes.SingleOrDefault(c => c.Dni.ToLower() == clienteOcupacionDTO.Dni.ToLower());
@@ -77,7 +74,7 @@ namespace GrsEF.Repositories
                 Ocupacione o = new Ocupacione
                 {
                     Dni = clienteOcupacionDTO.Dni,
-                    IdAlbergue = idAlbergue,
+                    IdAlbergue = albergue.Id,
                     CantPersonas = clienteOcupacionDTO.NumPersonas
                 };
 
@@ -85,11 +82,11 @@ namespace GrsEF.Repositories
 
                 cliente!.Ocupaciones.Add(o);
                 _bdGrsContext.SaveChanges();
-                return (true, mensaje, o);
+                return (mensaje, o);
             }
             catch (Exception ex)
             {
-                return (false, $"Error al guardar en la base de datos: {ex.Message}", null);
+                return ($"Error al guardar en la base de datos: {ex.Message}", null);
             }
         }
     }
