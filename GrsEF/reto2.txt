@@ -1,0 +1,40 @@
+Implementa un endpoint para cerrar un albergue en la base de datos.
+Para ello se solicitará el identificador del albergue a cerrar y un parámetro booleano opcional que permita forzar el borrado o no (valor por defecto false).
+
+Deberás controlar las siguientes reglas de negocio:
+Que el albergue exista; si no existe, devolver un error 404 Not Found.
+
+Comprobar si el albergue tiene registros asociados en la tabla Ocupaciones: 
+Si tiene ocupaciones y forzar es false: Cancelar el borrado y devolver un 409 Conflict indicando cuántas reservas activas tiene y el número total de personas que hay actualmente alojadas en él. 
+
+Si tiene ocupaciones y forzar es true: Eliminar todas las ocupaciones de ese albergue. Además, por cada cliente afectado por el desalojo, comprobar si tras borrar su reserva se ha quedado sin ninguna otra ocupación en la base de datos; si es así, eliminarlo también de Clientes.
+
+Si no tenía ocupaciones o estas se han borrado (porque se pedía forzar), en lugar de eliminar físicamente el registro de la tabla Albergues, aplicar un borrado lógico para que el albergue conste como cerrado a partir de ese momento. ¿Qué cambio requiere el modelo de datos para soportarlo y cómo afecta a las validaciones de los métodos anteriores (por ejemplo, al consultar albergues o registrar nuevas ocupaciones)?
+
+Importante: En caso de éxito, devolver un mensaje detallado resumiendo el albergue cerrado, cuántas ocupaciones se han eliminado, los o las clientes que se han eliminado por quedarse sin reservas y cuáles se han conservado porque siguen alojados en otros albergues.
+
+borrarAlbuergueDTO:
+
+	- string idAlbergue 
+	- bool forzarBorrado
+
+AlberguesController:
+
+	Flujo:
+	- Comprobar que el nombre del albergue no esté vacío
+	- Si forzarBorrado llega null, pasarlo a false
+	- Ejecutar el método del repositorio
+
+AlberguesRepository:
+
+	Flujo:
+	- Comprobar la existencia del albergue. No existe -> 404
+	- 
+	- Si forzarBorrado es false:
+		- Si hay ocupaciones:
+			- Devolver 409 Conflict indicando cuántas reservas activas hay y el número de personas
+		- Si no :
+			- Marcar el albergue como cerrado
+	- Si forzarBorrado es true:
+		- Borrar 
+		
