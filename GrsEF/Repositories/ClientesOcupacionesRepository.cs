@@ -52,7 +52,6 @@ namespace GrsEF.Repositories
                     Dni = clienteOcupacionDTO.Dni,
                     Nombre = clienteOcupacionDTO.Nombre,
                     Telefono = clienteOcupacionDTO.Telefono,
-                    Ocupaciones = []
                 };
 
                 _bdGrsContext.Clientes.Add(cliente);
@@ -79,8 +78,6 @@ namespace GrsEF.Repositories
                 };
 
                 _bdGrsContext.Ocupaciones.Add(o);
-
-                cliente!.Ocupaciones.Add(o);
                 _bdGrsContext.SaveChanges();
                 return (mensaje, o);
             }
